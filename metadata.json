@@ -1,0 +1,7 @@
+{
+  "name": "Vision Seekers - Blood Donor Management System",
+  "description": "A high-performance blood donor and inventory management platform for hospitals and citizens with real-time emergency search and alerting capabilities.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
