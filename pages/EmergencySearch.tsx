@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { BloodGroup, Hospital, Citizen, UserRole } from '../types';
-import { MOCK_HOSPITALS, MOCK_CITIZENS } from '../mockData';
+import { getHospitals, getCitizens, sendEmergencyAlert } from '../supabase';
 import { calculateDistance, playEmergencySound } from '../utils';
 
 interface EmergencySearchProps {
@@ -15,6 +15,7 @@ const EmergencySearch: React.FC<EmergencySearchProps> = ({ user, navigate }) => 
   const [hospitalsFound, setHospitalsFound] = useState<(Hospital & {distance: number})[]>([]);
   const [donorsFound, setDonorsFound] = useState<(Citizen & {distance: number})[]>([]);
   const [searching, setSearching] = useState(false);
+  const [alertSentTo, setAlertSentTo] = useState<string | null>(null);
 
   useEffect(() => {
     // Attempt to get user location
@@ -26,15 +27,19 @@ const EmergencySearch: React.FC<EmergencySearchProps> = ({ user, navigate }) => 
     }
   }, []);
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!selectedBlood || !userLocation) return;
     
     setSearching(true);
-    // Simulate API delay
-    setTimeout(() => {
-      // 1. Search Hospitals with Stock
-      const nearbyHospitals = MOCK_HOSPITALS
-        .filter(h => h.inventory[selectedBlood as BloodGroup] > 0)
+    try {
+      const [allHospitals, allCitizens] = await Promise.all([
+        getHospitals(),
+        getCitizens()
+      ]);
+
+      // 1. Search Hospitals with Stock from Supabase
+      const nearbyHospitals = allHospitals
+        .filter(h => (h.inventory && (h.inventory[selectedBlood as BloodGroup] || 0) > 0))
         .map(h => ({
           ...h,
           distance: calculateDistance(userLocation.lat, userLocation.lng, h.location.lat, h.location.lng)
@@ -43,8 +48,8 @@ const EmergencySearch: React.FC<EmergencySearchProps> = ({ user, navigate }) => 
       
       setHospitalsFound(nearbyHospitals);
 
-      // 2. Search Donors (only if not found or always show)
-      const nearbyDonors = MOCK_CITIZENS
+      // 2. Search Donors matching blood group from Supabase
+      const nearbyDonors = allCitizens
         .filter(d => d.bloodGroup === selectedBlood)
         .map(d => ({
           ...d,
@@ -53,13 +58,19 @@ const EmergencySearch: React.FC<EmergencySearchProps> = ({ user, navigate }) => 
         .sort((a, b) => a.distance - b.distance);
       
       setDonorsFound(nearbyDonors);
+    } catch (err) {
+      console.error('Search error:', err);
+    } finally {
       setSearching(false);
-    }, 800);
+    }
   };
 
-  const triggerAlert = (donorName: string) => {
+  const triggerAlert = async (donorName: string) => {
     playEmergencySound();
-    alert(`Emergency Alert Sent to ${donorName}! Their phone is now beeping with your hospital details.`);
+    setAlertSentTo(donorName);
+    const hospitalName = user?.name || 'Emergency Medical Services';
+    await sendEmergencyAlert(donorName, hospitalName, selectedBlood);
+    setTimeout(() => setAlertSentTo(null), 4500);
   };
 
   const bloodGroups: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -70,6 +81,19 @@ const EmergencySearch: React.FC<EmergencySearchProps> = ({ user, navigate }) => 
         <h1 className="text-4xl font-black text-slate-900 mb-4">Emergency Blood Search</h1>
         <p className="text-slate-600 max-w-2xl mx-auto">Instant search across all partner hospitals and registered donors. Use this only for critical medical emergencies.</p>
       </div>
+
+      {alertSentTo && (
+        <div className="mb-8 p-4 bg-emerald-600 text-white rounded-2xl shadow-xl flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex items-center gap-3">
+            <span className="w-3 h-3 bg-white rounded-full animate-ping"></span>
+            <div>
+              <p className="font-bold text-sm">Emergency Alert Broadcast Sent to {alertSentTo}!</p>
+              <p className="text-xs text-emerald-100">Logged to Supabase emergency_alerts table. Donor device notification triggered.</p>
+            </div>
+          </div>
+          <button onClick={() => setAlertSentTo(null)} className="text-white hover:text-emerald-200 text-sm font-bold">✕</button>
+        </div>
+      )}
 
       <div className="bg-white rounded-3xl p-8 shadow-xl border border-slate-100 mb-10">
         <div className="flex flex-col md:flex-row items-end gap-6">

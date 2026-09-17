@@ -1,6 +1,7 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Citizen } from '../types';
+import { getCitizens } from '../supabase';
 
 interface CitizenDashboardProps {
   user: Citizen;
@@ -8,9 +9,24 @@ interface CitizenDashboardProps {
   onLogout: () => void;
 }
 
-const CitizenDashboard: React.FC<CitizenDashboardProps> = ({ user, navigate, onLogout }) => {
+const CitizenDashboard: React.FC<CitizenDashboardProps> = ({ user: initialUser, navigate, onLogout }) => {
+  const [currentUser, setCurrentUser] = useState<Citizen>(initialUser);
   const thresholds = [1, 3, 5];
-  const achievedThresholds = thresholds.filter(t => user.totalDonated >= t);
+
+  useEffect(() => {
+    // Refresh latest history and totalDonated from Supabase
+    getCitizens().then(citizens => {
+      const refreshed = citizens.find(c => c.id === initialUser.id || c.email.toLowerCase() === initialUser.email.toLowerCase());
+      if (refreshed) {
+        setCurrentUser(refreshed);
+      }
+    });
+  }, [initialUser]);
+
+  const user = currentUser;
+  const totalDonated = user.totalDonated || 0;
+  const achievedThresholds = thresholds.filter(t => totalDonated >= t);
+  const historyList = user.history || [];
 
   const handleDownloadCertificate = (level: number) => {
     alert(`Downloading ${level}L Donation Excellence Certificate for ${user.name}...`);
@@ -77,8 +93,12 @@ const CitizenDashboard: React.FC<CitizenDashboardProps> = ({ user, navigate, onL
             </div>
             <div className="bg-white p-8 rounded-3xl shadow-lg border border-slate-100">
               <div className="text-slate-400 font-medium uppercase text-xs tracking-widest mb-1">Last Donation</div>
-              <div className="text-3xl font-bold text-slate-900">{user.history[user.history.length-1].date}</div>
-              <p className="mt-4 text-slate-500 text-sm">At {user.history[user.history.length-1].hospitalName}</p>
+              <div className="text-3xl font-bold text-slate-900">
+                {historyList.length > 0 ? historyList[historyList.length - 1].date : 'No donations yet'}
+              </div>
+              <p className="mt-4 text-slate-500 text-sm">
+                {historyList.length > 0 ? `At ${historyList[historyList.length - 1].hospitalName}` : 'Visit any partner hospital to make your first donation!'}
+              </p>
             </div>
           </div>
 
@@ -90,7 +110,7 @@ const CitizenDashboard: React.FC<CitizenDashboardProps> = ({ user, navigate, onL
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {thresholds.map(level => {
-                const isEarned = user.totalDonated >= level;
+                const isEarned = totalDonated >= level;
                 return (
                   <div key={level} className={`p-6 rounded-2xl border-2 transition-all ${isEarned ? 'border-yellow-200 bg-yellow-50' : 'border-slate-100 bg-slate-50 opacity-60'}`}>
                     <div className="text-2xl font-bold mb-1">{level}L</div>
@@ -112,22 +132,29 @@ const CitizenDashboard: React.FC<CitizenDashboardProps> = ({ user, navigate, onL
           {/* Donation Timeline */}
           <div className="bg-white rounded-3xl p-8 shadow-lg border border-slate-100">
             <h3 className="text-xl font-bold text-slate-900 mb-6">Donation History</h3>
-            <div className="space-y-6">
-              {user.history.map((record, idx) => (
-                <div key={record.id} className="relative pl-8 pb-6 border-l-2 border-slate-100 last:pb-0">
-                  <div className="absolute left-[-9px] top-0 w-4 h-4 bg-red-600 rounded-full border-4 border-white"></div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
-                    <div>
-                      <h4 className="font-bold text-slate-900">{record.hospitalName}</h4>
-                      <p className="text-slate-500 text-sm">Donated {record.amountLitres}L of blood</p>
-                    </div>
-                    <div className="text-sm font-semibold text-slate-400">
-                      {new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            {historyList.length === 0 ? (
+              <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <p className="text-slate-500 font-medium text-sm">No donations recorded yet.</p>
+                <p className="text-slate-400 text-xs mt-1">Once a hospital logs your blood donation, your timeline & badges will update automatically via Supabase.</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {historyList.map((record, idx) => (
+                  <div key={record.id} className="relative pl-8 pb-6 border-l-2 border-slate-100 last:pb-0">
+                    <div className="absolute left-[-9px] top-0 w-4 h-4 bg-red-600 rounded-full border-4 border-white"></div>
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                      <div>
+                        <h4 className="font-bold text-slate-900">{record.hospitalName}</h4>
+                        <p className="text-slate-500 text-sm">Donated {record.amountLitres}L of blood</p>
+                      </div>
+                      <div className="text-sm font-semibold text-slate-400">
+                        {new Date(record.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )).reverse()}
-            </div>
+                )).reverse()}
+              </div>
+            )}
           </div>
         </div>
       </div>

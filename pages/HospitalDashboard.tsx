@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import { Hospital, BloodGroup } from '../types';
-import { MOCK_CITIZENS } from '../mockData';
+import React, { useState, useEffect } from 'react';
+import { Hospital, BloodGroup, Citizen } from '../types';
+import { getCitizens, updateHospitalStock, recordNewDonation } from '../supabase';
+import { Activity, Plus, Minus, Search, HeartPulse, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 interface HospitalDashboardProps {
   user: Hospital;
@@ -12,26 +13,60 @@ interface HospitalDashboardProps {
 const HospitalDashboard: React.FC<HospitalDashboardProps> = ({ user, navigate, onLogout }) => {
   const [inventory, setInventory] = useState(user.inventory);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDonor, setSelectedDonor] = useState<any>(null);
+  const [selectedDonor, setSelectedDonor] = useState<Citizen | null>(null);
   const [donationAmount, setDonationAmount] = useState(0.5);
+  const [allDonors, setAllDonors] = useState<Citizen[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [activityMessage, setActivityMessage] = useState<string | null>(null);
 
   const bloodGroups: BloodGroup[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
-  const handleStockUpdate = (bg: BloodGroup, delta: number) => {
-    setInventory(prev => ({
-      ...prev,
-      [bg]: Math.max(0, prev[bg] + delta)
-    }));
+  useEffect(() => {
+    getCitizens().then(list => setAllDonors(list));
+  }, []);
+
+  const handleStockUpdate = async (bg: BloodGroup, delta: number) => {
+    const updatedInventory = {
+      ...inventory,
+      [bg]: Math.max(0, (inventory[bg] || 0) + delta)
+    };
+    setInventory(updatedInventory);
+    setIsSaving(true);
+    await updateHospitalStock(user.id, updatedInventory);
+    setIsSaving(false);
+    setActivityMessage(`Updated ${bg} stock in Supabase (${delta > 0 ? '+' + delta : delta} units)`);
+    setTimeout(() => setActivityMessage(null), 3500);
   };
 
   const filteredDonors = searchTerm 
-    ? MOCK_CITIZENS.filter(d => d.email.toLowerCase().includes(searchTerm.toLowerCase()) || d.phone.includes(searchTerm))
+    ? allDonors.filter(d => 
+        d.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        d.email.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        d.phone.includes(searchTerm)
+      )
     : [];
 
-  const handleRecordDonation = () => {
+  const handleRecordDonation = async () => {
     if (!selectedDonor) return;
-    handleStockUpdate(selectedDonor.bloodGroup, donationAmount);
-    alert(`Success: Recorded ${donationAmount}L from ${selectedDonor.name}. Inventory updated.`);
+    setIsSaving(true);
+    const res = await recordNewDonation(
+      user.id,
+      user.name,
+      selectedDonor.id,
+      donationAmount,
+      selectedDonor.bloodGroup
+    );
+    
+    // Refresh local stock state
+    const addedUnits = Math.round(donationAmount * 2) || 1;
+    setInventory(prev => ({
+      ...prev,
+      [selectedDonor.bloodGroup]: (prev[selectedDonor.bloodGroup] || 0) + addedUnits
+    }));
+
+    setIsSaving(false);
+    setActivityMessage(`Recorded ${donationAmount}L from ${selectedDonor.name} directly to Supabase!`);
+    setTimeout(() => setActivityMessage(null), 4000);
     setSelectedDonor(null);
     setSearchTerm('');
   };

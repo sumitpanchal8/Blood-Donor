@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, UserRole } from './types';
-import { MOCK_CITIZENS, MOCK_HOSPITALS } from './mockData';
 import Home from './pages/Home';
 import CitizenLogin from './pages/CitizenLogin';
+import CitizenRegister from './pages/CitizenRegister';
 import HospitalLogin from './pages/HospitalLogin';
 import CitizenDashboard from './pages/CitizenDashboard';
 import HospitalDashboard from './pages/HospitalDashboard';
@@ -45,6 +45,7 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home': return <Home navigate={setCurrentPage} />;
       case 'citizen_login': return <CitizenLogin onLogin={handleLogin} navigate={setCurrentPage} />;
+      case 'register': return <CitizenRegister onLogin={handleLogin} navigate={setCurrentPage} />;
       case 'hospital_login': return <HospitalLogin onLogin={handleLogin} navigate={setCurrentPage} />;
       case 'emergency': return <EmergencySearch user={user} navigate={setCurrentPage} />;
       case 'citizen_dashboard': 
