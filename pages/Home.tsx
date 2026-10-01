@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HeartPulse, Search, UserPlus, Users, Hospital, Activity, Phone, AlertCircle, ArrowRight } from 'lucide-react';
+import { HeartPulse, Search, UserPlus, Users, Hospital, Activity, Phone, AlertCircle, ArrowRight, Compass, Navigation, MapPin } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface HomeProps {
@@ -38,20 +38,54 @@ const Home: React.FC<HomeProps> = ({ navigate }) => {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <button 
-                onClick={() => navigate('emergency')}
+                onClick={() => navigate('live_map')}
                 className="group px-8 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold text-lg shadow-2xl shadow-red-200 transition-all hover:scale-105 flex items-center justify-center gap-2"
               >
-                <Search className="h-5 w-5" />
-                Search Blood (Emergency)
+                <Compass className="h-5 w-5 animate-spin-slow" />
+                Live GPS Route Map
+              </button>
+              <button 
+                onClick={() => navigate('emergency')}
+                className="group px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-lg shadow-xl transition-all flex items-center justify-center gap-2"
+              >
+                <Search className="h-5 w-5 text-red-400" />
+                Search Blood
               </button>
               <button 
                 onClick={() => navigate('citizen_login')}
                 className="group px-8 py-4 bg-white border-2 border-slate-200 hover:border-red-600 text-slate-900 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2"
               >
                 <UserPlus className="h-5 w-5" />
-                Become a Donor
+                Become Donor
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Live Map Teaser Banner */}
+      <section className="py-8 bg-gradient-to-r from-red-600 via-rose-600 to-red-700 text-white shadow-inner">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20 flex-shrink-0">
+                <Navigation className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <span className="text-[11px] font-black uppercase tracking-widest text-red-200">New Feature</span>
+                <h3 className="text-xl font-black">Live Location & Smart Proximity Hospital/Donor Navigator</h3>
+                <p className="text-xs text-red-100 mt-0.5">
+                  Tracks your GPS location in real time. Automatically checks if the nearest hospital is far and suggests a closer matched donor.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('live_map')}
+              className="px-6 py-3.5 bg-white text-red-600 hover:bg-red-50 rounded-2xl font-bold text-sm shadow-xl transition-all whitespace-nowrap flex items-center gap-2 flex-shrink-0"
+            >
+              <Compass className="w-4 h-4" />
+              <span>Open Live Route Map</span>
+            </button>
           </div>
         </div>
       </section>

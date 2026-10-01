@@ -8,11 +8,13 @@ import HospitalLogin from './pages/HospitalLogin';
 import CitizenDashboard from './pages/CitizenDashboard';
 import HospitalDashboard from './pages/HospitalDashboard';
 import EmergencySearch from './pages/EmergencySearch';
+import LiveMapPage from './pages/LiveMapPage';
 import Navbar from './components/Navbar';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User>(null);
   const [currentPage, setCurrentPage] = useState<string>('home');
+  const [selectedBloodForMap, setSelectedBloodForMap] = useState<any>('O+');
   const [notification, setNotification] = useState<{message: string, type: 'info' | 'error' | 'success'} | null>(null);
 
   useEffect(() => {
@@ -47,7 +49,25 @@ const App: React.FC = () => {
       case 'citizen_login': return <CitizenLogin onLogin={handleLogin} navigate={setCurrentPage} />;
       case 'register': return <CitizenRegister onLogin={handleLogin} navigate={setCurrentPage} />;
       case 'hospital_login': return <HospitalLogin onLogin={handleLogin} navigate={setCurrentPage} />;
-      case 'emergency': return <EmergencySearch user={user} navigate={setCurrentPage} />;
+      case 'emergency': 
+        return (
+          <EmergencySearch 
+            user={user} 
+            navigate={setCurrentPage} 
+            onOpenMap={(bg) => {
+              if (bg) setSelectedBloodForMap(bg);
+              setCurrentPage('live_map');
+            }} 
+          />
+        );
+      case 'live_map':
+        return (
+          <LiveMapPage
+            user={user}
+            navigate={setCurrentPage}
+            initialBloodGroup={selectedBloodForMap}
+          />
+        );
       case 'citizen_dashboard': 
         return user?.role === UserRole.CITIZEN ? <CitizenDashboard user={user as any} navigate={setCurrentPage} onLogout={handleLogout} /> : <Home navigate={setCurrentPage} />;
       case 'hospital_dashboard': 
@@ -83,6 +103,10 @@ const App: React.FC = () => {
           <div className="mt-4 flex justify-center space-x-6">
             <button onClick={() => setCurrentPage('home')} className="hover:text-red-400">Home</button>
             <button onClick={() => setCurrentPage('emergency')} className="hover:text-red-400">Emergency Search</button>
+            <button onClick={() => setCurrentPage('live_map')} className="hover:text-red-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+              Live GPS Map
+            </button>
             <a href="#" className="hover:text-red-400">Terms of Service</a>
           </div>
         </div>

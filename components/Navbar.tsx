@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
-import { HeartPulse, Menu, X, LogOut, User as UserIcon, Search } from 'lucide-react';
+import { HeartPulse, Menu, X, LogOut, User as UserIcon, Search, Compass } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface NavbarProps {
@@ -48,6 +48,17 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, currentPage, navigate }
               >
                 <Search className="h-4 w-4" />
                 Emergency Search
+              </button>
+              <button 
+                onClick={() => navigate('live_map')}
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium gap-2 transition-all ${currentPage === 'live_map' ? 'border-red-500 text-red-600 font-bold' : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'}`}
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+                </span>
+                <Compass className="h-4 w-4 text-red-600" />
+                Live Map
               </button>
             </div>
           </div>
@@ -113,6 +124,13 @@ const Navbar: React.FC<NavbarProps> = ({ user, onLogout, currentPage, navigate }
             className="block w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-slate-600 hover:bg-slate-50 hover:border-red-500 hover:text-red-600 font-medium"
           >
             Emergency Search
+          </button>
+          <button 
+            onClick={() => { navigate('live_map'); setIsOpen(false); }}
+            className="block w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-red-600 hover:bg-red-50 hover:border-red-500 font-bold flex items-center gap-2"
+          >
+            <Compass className="h-4 w-4 text-red-600" />
+            Live GPS Route Map
           </button>
         </div>
         {!user ? (

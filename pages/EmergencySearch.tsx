@@ -3,13 +3,15 @@ import React, { useState, useEffect } from 'react';
 import { BloodGroup, Hospital, Citizen, UserRole } from '../types';
 import { getHospitals, getCitizens, sendEmergencyAlert } from '../supabase';
 import { calculateDistance, playEmergencySound } from '../utils';
+import { Compass, Navigation, AlertTriangle, ExternalLink } from 'lucide-react';
 
 interface EmergencySearchProps {
   user: any;
   navigate: (page: string) => void;
+  onOpenMap?: (bloodGroup?: BloodGroup | '') => void;
 }
 
-const EmergencySearch: React.FC<EmergencySearchProps> = ({ user, navigate }) => {
+const EmergencySearch: React.FC<EmergencySearchProps> = ({ user, navigate, onOpenMap }) => {
   const [selectedBlood, setSelectedBlood] = useState<BloodGroup | ''>('');
   const [userLocation, setUserLocation] = useState<{lat: number, lng: number} | null>(null);
   const [hospitalsFound, setHospitalsFound] = useState<(Hospital & {distance: number})[]>([]);
@@ -111,15 +113,50 @@ const EmergencySearch: React.FC<EmergencySearchProps> = ({ user, navigate }) => 
               ))}
             </div>
           </div>
-          <button 
-            onClick={handleSearch}
-            disabled={!selectedBlood || searching}
-            className="w-full md:w-auto px-10 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold shadow-xl transition-all disabled:opacity-50"
-          >
-            {searching ? 'Locating...' : 'Search Now'}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <button 
+              onClick={handleSearch}
+              disabled={!selectedBlood || searching}
+              className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold shadow-xl transition-all disabled:opacity-50"
+            >
+              {searching ? 'Locating...' : 'Search List'}
+            </button>
+            <button
+              onClick={() => onOpenMap ? onOpenMap(selectedBlood) : navigate('live_map')}
+              className="px-6 py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-bold shadow-xl shadow-red-200 transition-all flex items-center justify-center gap-2 group"
+            >
+              <Compass className="w-5 h-5 text-white animate-spin-slow" />
+              <span>Track on Live GPS Map</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Proximity alert if hospital is farther than nearest donor */}
+      {!searching && selectedBlood && hospitalsFound.length > 0 && donorsFound.length > 0 && hospitalsFound[0].distance > donorsFound[0].distance && (
+        <div className="mb-8 p-5 bg-gradient-to-r from-amber-500/10 via-amber-50 to-amber-100/50 border border-amber-300 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-amber-500 text-white rounded-xl">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-900 text-sm">
+                Proximity Advice: Nearest hospital with {selectedBlood} is {hospitalsFound[0].distance.toFixed(1)} km away, but verified donor {donorsFound[0].name} is closer ({donorsFound[0].distance.toFixed(1)} km away)!
+              </p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                For time-critical needs, you can route directly to the donor on the live navigation map.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => onOpenMap ? onOpenMap(selectedBlood) : navigate('live_map')}
+            className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold whitespace-nowrap flex items-center justify-center gap-1.5 shadow-md"
+          >
+            <Navigation className="w-3.5 h-3.5 text-red-400" />
+            <span>Open in Live GPS Map</span>
+          </button>
+        </div>
+      )}
 
       {searching && (
         <div className="flex flex-col items-center justify-center py-20">
